@@ -51,7 +51,7 @@ _or_
    - **Using YAML:** Add following code to `lovelace` section.
      ```yaml
      resources:
-       - url: /local/mushroom.js
+       - url: /local/rss-news-card/rss-news-card.js
          type: module
      ```
 
@@ -149,5 +149,5 @@ sources:
 
 - Home Assistant 2024.1+
 - `curl` and `jq` available in the HA container (default in most installations)
-- RSS sources configured as `command_line` sensors — see [README](https://github.com/yourusername/rss-news-card#readme) for setup
+- RSS sources configured as `command_line` sensors — see [README](https://github.com/suxlala/rss-news-card#readme) for setup
 
