@@ -1,6 +1,6 @@
 # 📰 RSS News Card
 
-![Overview](https://user-images.githubusercontent.com/5878303/152332130-760cf616-5c40-4825-a482-bb8f1f0f5251.png)
+![Overview](https://github.com/suxlala/rss-news-card/blob/main/cardoverview.png)
 
 ## What is RSS News Card ?
 
