@@ -4,7 +4,7 @@
 
 ## What is RSS News Card ?
 
-A scrollable and highly customisable RSS newsfeed reader card for [Home Assistant][home-assistant] Dashboard, with multi-source support, automatic language detection, and full visual editor. RSS News Card is designed to scrape the content of various types of RSS feeds with pictures and display it on your HA Dashboard the way you want, with many options to tweak.
+A scrollable and highly customisable RSS newsfeed reader card for Home Assistant Dashboard, with multi-source support, automatic language detection, and full visual editor. RSS News Card is designed to scrape the content of various types of RSS feeds with pictures and display it on your HA Dashboard the way you want, with many options to tweak.
 
 ### Features
 
@@ -22,14 +22,17 @@ A scrollable and highly customisable RSS newsfeed reader card for [Home Assistan
 
 ### HACS (Recommended)
 
-Go to the HACS store, click on the 3 dots in upper right corner, select Custom repos and add the url `https://github.com/suxlala/rss-news-card` and chose Dashboard as a type.
+1. Go to the HACS store 
+2. Click on the 3 dots in the upper right corner
+3. Select Custom repos and add the url `https://github.com/suxlala/rss-news-card` 
+4. Choose Dashboard as a type
 
-In Home Assistant's global settings, add the resource:
+Then, in Home Assistant's global settings, add the resource:
 
 1. Go to **Settings → Dashboards → Three-dots menu → Resources** in the top right
 2. Click **+ Add Resource** button in the bottom right
 3. Enter in the following:
-    * **URL:** /local/rss-news-card/rss-news-card.js
+    * **URL:** /local/community/rss-news-card/rss-news-card.js
     * **Resource Type:** JavaScript Module
 4. Click Create
 **Note:** If you do not see the Resources menu, you will need to enable _Advanced Mode_ in your _User Profile_
@@ -38,14 +41,14 @@ _or_
 
 ### Manual Installation
 
-1. Download `rss-news-card.js` file from the [latest release][release-url].
-2. Put `rss-news-card.js` file into your `config/www` folder. (/config/www/rss-news-card/rss-news-card.js)
+1. Download `rss-news-card.js` file from the latest release.
+2. Put `rss-news-card.js` file into `config/www/community/rss-news-card/` folder.
 3. Add reference to `rss-news-card.js` in Dashboard. Either as above, using UI in Dashboard settings
 	_or_
    - **Using YAML:** Add following code to `lovelace` section.
      ```yaml
      resources:
-       - url: /local/rss-news-card/rss-news-card.js
+       - url: /local/community/rss-news-card/rss-news-card.js
          type: module
      ```
 
