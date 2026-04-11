@@ -1,5 +1,10 @@
 # 📰 RSS News Card
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+![version](https://img.shields.io/badge/version-1.2-blue)
+![HA](https://img.shields.io/badge/Home%20Assistant-2024.1+-green)
+![license](https://img.shields.io/badge/license-MIT-lightgrey)
+
 ![Overview](https://github.com/suxlala/rss-news-card/blob/main/cardoverview.png)
 
 ## What is RSS News Card ?
