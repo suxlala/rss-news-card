@@ -22,6 +22,10 @@ A scrollable and highly customisable RSS newsfeed reader card for Home Assistant
 
 ### HACS (Recommended)
 
+[![Open HACS Repository](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=suxlala&repository=rss-news-card&category=plugin)
+
+> If the button doesn't work, add manually:
+
 1. Go to the HACS store 
 2. Click on the 3 dots in the upper right corner
 3. Select Custom repos and add the url `https://github.com/suxlala/rss-news-card` 
