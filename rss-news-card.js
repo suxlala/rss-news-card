@@ -1,7 +1,7 @@
 /**
  * RSS News Card for Home Assistant
- * v1.2.0 
- *
+ * v1.2.1 - Auto language detection from HA, toggle switches in editor,
+ *           configurable font sizes, HA-style card title
  */
 
 // ─── Localizations ────────────────────────────────────────────────────────────
@@ -138,9 +138,9 @@ class RssNewsCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      title: 'Latest News',
-      sources: [{ entity: 'sensor.bbc_news', name: 'BBC', color: '#e63946' }],
-      max_articles: 20,
+      title: 'News',
+      sources: [{ entity: 'sensor.telex_rss', name: 'Telex', color: '#e63946' }],
+      max_articles: 10,
       card_height: 400,
       show_description: true,
       show_source: true,
@@ -159,7 +159,7 @@ class RssNewsCard extends HTMLElement {
     this._config = {
       title:            config.title || '',
       sources:          config.sources,
-      max_articles:     config.max_articles || 20,
+      max_articles:     config.max_articles || 10,
       card_height:      config.card_height || 400,
       show_description: config.show_description !== false,
       show_source:      config.show_source !== false,
@@ -174,6 +174,10 @@ class RssNewsCard extends HTMLElement {
     };
     this._initialized = false;
     this._render();
+    // Apply dynamic properties immediately after render
+    if (this._hass) {
+      this._updateContent(this._articles || [], JSON.parse(this._lastIssuesJson || '[]'));
+    }
   }
 
   set hass(hass) {
@@ -264,15 +268,39 @@ class RssNewsCard extends HTMLElement {
     } catch { return pubDate; }
   }
 
+  _getVisited() {
+    try {
+      return JSON.parse(localStorage.getItem('rss-news-card-visited') || '[]');
+    } catch { return []; }
+  }
+
+  _markVisited(url) {
+    try {
+      const visited = this._getVisited();
+      if (!visited.includes(url)) {
+        visited.push(url);
+        // Keep max 500 entries to avoid unbounded growth
+        if (visited.length > 500) visited.splice(0, visited.length - 500);
+        localStorage.setItem('rss-news-card-visited', JSON.stringify(visited));
+      }
+    } catch {}
+  }
+
+  _isVisited(url) {
+    return this._getVisited().includes(url);
+  }
+
   _buildArticlesHtml(articles) {
     const { show_source, show_date, show_description, image_width, image_height, title_font_size, desc_font_size, article_title_color, desc_color } = this._config;
     const t = this._t();
     if (articles.length === 0) return `<div style="padding:20px;color:var(--secondary-text-color);text-align:center;">${t.no_articles}</div>`;
     return articles.map(a => `
-      <a href="${a.link}" target="_blank" rel="noopener" style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--divider-color);text-decoration:none;color:inherit;">
+      <a href="${a.link}" target="_blank" rel="noopener"
+        onclick="(function(el,url){el.querySelector('.rss-atitle').style.color='var(--disabled-text-color)';try{var v=JSON.parse(localStorage.getItem('rss-news-card-visited')||'[]');if(!v.includes(url)){v.push(url);if(v.length>500)v.splice(0,v.length-500);localStorage.setItem('rss-news-card-visited',JSON.stringify(v))}}catch(e){}})(this,'${a.link}')"
+        style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--divider-color);text-decoration:none;color:inherit;">
         ${a.image && a.image.trim() !== '' ? `<img src="${a.image}" style="width:${image_width}px;min-width:${image_width}px;height:${image_height}px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'"/>` : ''}
         <div style="flex:1;min-width:0;text-align:left;">
-          <div style="font-size:${title_font_size}px;font-weight:600;line-height:1.4;color:${article_title_color || 'var(--primary-text-color)'};white-space:normal;word-break:break-word;margin-bottom:4px;">${a.title}</div>
+          <div class="rss-atitle" style="font-size:${title_font_size}px;font-weight:600;line-height:1.4;color:${this._isVisited(a.link) ? 'var(--disabled-text-color)' : (article_title_color || 'var(--primary-text-color)')};white-space:normal;word-break:break-word;margin-bottom:4px;">${a.title}</div>
           ${(show_source || show_date) ? `
             <div style="font-size:11px;color:var(--secondary-text-color);margin-bottom:4px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
               ${show_source ? `<span style="font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:${a._sourceColor};">${a._sourceName}</span>` : ''}
@@ -396,7 +424,7 @@ class RssNewsCardEditor extends HTMLElement {
         <button class="rss-add" id="ed-add">${t.ed.add_source}</button>
 
         <label>${t.ed.max_articles}</label>
-        <input type="number" id="ed-max" min="1" max="50" value="${c.max_articles || 20}"/>
+        <input type="number" id="ed-max" min="1" max="50" value="${c.max_articles || 10}"/>
 
         <label>${t.ed.card_height}</label>
         <input type="number" id="ed-height" min="100" max="2000" value="${c.card_height || 400}"/>
@@ -557,7 +585,7 @@ class RssNewsCardEditor extends HTMLElement {
     };
 
     bind('#ed-title',    'title');
-    bind('#ed-max',      'max_articles',    v => parseInt(v) || 20);
+    bind('#ed-max',      'max_articles',    v => parseInt(v) || 10);
     bind('#ed-height',   'card_height',     v => parseInt(v) || 400);
     bind('#ed-imgw',     'image_width',     v => parseInt(v) || 100);
     bind('#ed-imgh',     'image_height',    v => parseInt(v) || 70);
