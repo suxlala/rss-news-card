@@ -1,6 +1,5 @@
 {
   "name": "RSS News Card",
-  "documentation": "https://github.com/suxlala/rss-news-card",
   "domain": "lovelace",
   "render_readme": false
 }
