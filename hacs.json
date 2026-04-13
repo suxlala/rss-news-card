@@ -1,8 +1,8 @@
 {
   "name": "RSS News Card",
   "description": "Scrollable RSS news card for Home Assistant with multi-source support and visual editor.",
-  "documentation": "https://github.com/suxlala/rss-news-card",
-  "version": "1.2.0",
+  "documentation": "https://github.com/yourusername/rss-news-card",
+  "version": "1.5.0",
   "domain": "lovelace",
   "render_readme": false
 }

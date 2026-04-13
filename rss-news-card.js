@@ -1,7 +1,7 @@
 /**
  * RSS News Card for Home Assistant
- * v1.2.1 - Auto language detection from HA, toggle switches in editor,
- *           configurable font sizes, HA-style card title
+ * v1.5.0 - HACS-compatible, auto language detection, visual editor,
+ *           configurable colors/fonts, visited article tracking
  */
 
 // ─── Localizations ────────────────────────────────────────────────────────────
@@ -149,6 +149,9 @@ class RssNewsCard extends HTMLElement {
       image_height: 70,
       title_font_size: 15,
       desc_font_size: 14,
+      card_title_color: '',
+      article_title_color: '',
+      desc_color: '',
     };
   }
 
@@ -269,25 +272,17 @@ class RssNewsCard extends HTMLElement {
   }
 
   _getVisited() {
-    try {
-      return JSON.parse(localStorage.getItem('rss-news-card-visited') || '[]');
-    } catch { return []; }
+    // Use a module-level Set shared across all card instances on the page
+    if (!window._rssNewsCardVisited) window._rssNewsCardVisited = new Set();
+    return window._rssNewsCardVisited;
   }
 
   _markVisited(url) {
-    try {
-      const visited = this._getVisited();
-      if (!visited.includes(url)) {
-        visited.push(url);
-        // Keep max 500 entries to avoid unbounded growth
-        if (visited.length > 500) visited.splice(0, visited.length - 500);
-        localStorage.setItem('rss-news-card-visited', JSON.stringify(visited));
-      }
-    } catch {}
+    this._getVisited().add(url);
   }
 
   _isVisited(url) {
-    return this._getVisited().includes(url);
+    return this._getVisited().has(url);
   }
 
   _buildArticlesHtml(articles) {
@@ -295,8 +290,7 @@ class RssNewsCard extends HTMLElement {
     const t = this._t();
     if (articles.length === 0) return `<div style="padding:20px;color:var(--secondary-text-color);text-align:center;">${t.no_articles}</div>`;
     return articles.map(a => `
-      <a href="${a.link}" target="_blank" rel="noopener"
-        onclick="(function(el,url){el.querySelector('.rss-atitle').style.color='var(--disabled-text-color)';try{var v=JSON.parse(localStorage.getItem('rss-news-card-visited')||'[]');if(!v.includes(url)){v.push(url);if(v.length>500)v.splice(0,v.length-500);localStorage.setItem('rss-news-card-visited',JSON.stringify(v))}}catch(e){}})(this,'${a.link}')"
+      <a href="${a.link}" target="_blank" rel="noopener" data-rss-url="${a.link}"
         style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--divider-color);text-decoration:none;color:inherit;">
         ${a.image && a.image.trim() !== '' ? `<img src="${a.image}" style="width:${image_width}px;min-width:${image_width}px;height:${image_height}px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'"/>` : ''}
         <div style="flex:1;min-width:0;text-align:left;">
@@ -349,7 +343,18 @@ class RssNewsCard extends HTMLElement {
     const diagEl = this.querySelector('.rss-diag');
     const artEl = this.querySelector('.rss-articles');
     if (diagEl) diagEl.innerHTML = issues.length > 0 ? this._renderDiagnostics(issues) : '';
-    if (artEl) artEl.innerHTML = this._buildArticlesHtml(articles);
+    if (artEl) {
+      artEl.innerHTML = this._buildArticlesHtml(articles);
+      // Attach click listeners for visited tracking (no inline onclick)
+      artEl.querySelectorAll('a[data-rss-url]').forEach(a => {
+        a.addEventListener('click', () => {
+          const url = a.dataset.rssUrl;
+          this._markVisited(url);
+          const titleEl = a.querySelector('.rss-atitle');
+          if (titleEl) titleEl.style.color = 'var(--disabled-text-color)';
+        });
+      });
+    }
   }
 
   getCardSize() { return 5; }
@@ -500,8 +505,8 @@ class RssNewsCardEditor extends HTMLElement {
   }
 
   _syncColorPreviews() {
-    // Find the actual rendered card element to read computed colors
-    const card = document.querySelector('rss-news-card');
+    // Find the card element via DOM traversal from the editor
+    const card = this.closest('ha-card') || document.querySelector('rss-news-card');
     const syncPreview = (previewId, configVal, cssVar) => {
       const preview = this.querySelector(previewId);
       if (!preview) return;
