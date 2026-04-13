@@ -3,4 +3,5 @@
   "content_in_root": true,
   "filename": "rss-news-card.js",
   "homeassistant": "2024.1",
+  "render_readme": true
 }
