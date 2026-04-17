@@ -1,6 +1,6 @@
 /**
  * RSS News Card for Home Assistant
- * v1.5.0 - HACS-compatible, auto language detection, visual editor,
+ * v1.5.2 - HACS-compatible, auto language detection, visual editor,
  *           configurable colors/fonts, visited article tracking
  */
 
