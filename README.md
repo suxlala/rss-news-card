@@ -1,7 +1,7 @@
 # 📰 RSS News Card
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-![version](https://img.shields.io/badge/version-1.5.0-blue)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/frontend)
+![version](https://img.shields.io/badge/version-1.5.2-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2024.1+-green)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
@@ -74,10 +74,10 @@ command_line:
       icon: "mdi:rss"
       scan_interval: 600
       command: >-
-        curl -sk "https://feeds.bbci.co.uk/news/world/europe/rss.xml" -A "Mozilla/5.0" | tr -d '\n' | sed 's/<!\[CDATA\[//g; s/\]\]>//g' | sed 's/<\/item>/\n/g' | grep '<item>' | head -5 | while read -r item; do
+        curl -sk "https://feeds.bbci.co.uk/news/world/europe/rss.xml" -A "Mozilla/5.0" | tr -d '\n' | sed 's/<item>/\n<item>/' | sed '1d' | sed 's/<!\[CDATA\[//g; s/\]\]>//g' | sed 's/<\/item>/\n/g' | grep '<item>' | head -5 | while read -r item; do
           title=$(echo "$item" | sed 's/.*<title>\([^<]*\)<\/title>.*/\1/' | sed 's/^ *//;s/ *$//');
           link=$(echo "$item" | sed 's/.*<link>\([^<]*\)<\/link>.*/\1/');
-          desc=$(echo "$item" | sed 's/.*<description>\([^<]*\)<\/description>.*/\1/' | sed 's/^ *//;s/ *$//');
+          desc=$(echo "$item" | grep -oP '(?<=<description>).*?(?=</description>)' | sed 's/.*<p>\([^<]*\)<\/p>.*/\1/' | sed 's/<[^>]*>//g; s/The post.*//; s/^ *//;s/ *$//');
           pub=$(echo "$item" | sed 's/.*<pubDate>\([^<]*\)<\/pubDate>.*/\1/' | awk '{
             split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", m)
             for(i=1;i<=12;i++) month[m[i]]=sprintf("%02d",i)
@@ -88,17 +88,17 @@ command_line:
             img=$(echo "$item" | grep -o 'media:content[^>]*url="[^"]*"' | grep -o 'url="[^"]*"' | sed 's/url="//;s/"$//' | head -1);
           fi;
           if [ -z "$img" ]; then
-            img=$(echo "$item" | grep -o 'media:thumbnail[^>]*url="[^"]*"' | grep -o 'url="[^"]*"' | sed 's/url="//;s/"$//' | head -1);
+            img=$(echo "$item" | grep -oP '<img[^>]+src=" \K[^"]+' | head -1);
+            if [ -z "$img" ]; then
+                img=$(echo "$item" | grep -oE '<img[^>]+src="[^"]+"' | head -1 | cut -d'"' -f2);
+            fi
           fi;
-          if [ -z "$img" ]; then
-            img=$(echo "$item" | grep -oE '<img[^>]+src="[^"]+"' | grep -o 'src="[^"]*"' | sed 's/src="//;s/"$//' | head -1);
-          fi;          
           jq -n --arg t "$title" --arg l "$link" --arg d "$desc" --arg p "$pub" --arg i "$img" \
             '{title:$t, link:$l, description:$d, pubDate:$p, image:$i}';
-        done | jq -sc '{"articles": .}'     
+        done | jq -sc '{"articles": .}'   
       value_template: "{{ value_json.articles | count }} cikk"
       json_attributes:
-        - articles 
+        - articles
 ```
 
 > **Note:** This command will check for updates every 10 minutes (600 sec) and collect the headline, summary and picture for the latest 5 news articles from the RSS URL provided. Change the value of `head -5` if you want to gather more or less than 5 articles for your news source.
