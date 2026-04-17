@@ -128,8 +128,9 @@ class RssNewsCard extends HTMLElement {
     this._config = {};
     this._hass = null;
     this._articles = [];
-    this._lastIssuesJson = '';
+    this._lastStateKey = '';
     this._initialized = false;
+
   }
 
   static getConfigElement() {
@@ -185,13 +186,17 @@ class RssNewsCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    // Build a lightweight stateKey from all source sensors – skip render if nothing changed
+    const stateKey = this._config.sources.map(s => {
+      const st = hass.states[s.entity];
+      return st ? (s.entity + ':' + st.state + ':' + st.last_updated) : s.entity;
+    }).join('|');
+    if (stateKey === this._lastStateKey && this._initialized) return;
+    this._lastStateKey = stateKey;
     const newArticles = this._getArticles();
     const newIssues = this._validateSources();
-    const newJson = JSON.stringify(newArticles);
-    const newIssuesJson = JSON.stringify(newIssues);
-    if (newJson === JSON.stringify(this._articles) && newIssuesJson === this._lastIssuesJson && this._initialized) return;
     this._articles = newArticles;
-    this._lastIssuesJson = newIssuesJson;
+    this._lastIssuesJson = JSON.stringify(newIssues);
     this._updateContent(newArticles, newIssues);
   }
 
@@ -290,9 +295,9 @@ class RssNewsCard extends HTMLElement {
     const t = this._t();
     if (articles.length === 0) return `<div style="padding:20px;color:var(--secondary-text-color);text-align:center;">${t.no_articles}</div>`;
     return articles.map(a => `
-      <a href="${a.link}" target="_blank" rel="noopener" data-rss-url="${a.link}"
-        style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--divider-color);text-decoration:none;color:inherit;">
-        ${a.image && a.image.trim() !== '' ? `<img src="${a.image}" style="width:${image_width}px;min-width:${image_width}px;height:${image_height}px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'"/>` : ''}
+      <div class="rss-article-row" data-rss-url="${a.link}"
+        style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--divider-color);cursor:pointer;-webkit-tap-highlight-color:transparent;">
+        ${a.image && a.image.trim() !== '' ? `<img src="${a.image}" style="width:${image_width}px;min-width:${image_width}px;height:${image_height}px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.display='none'"/>` : ''}
         <div style="flex:1;min-width:0;text-align:left;">
           <div class="rss-atitle" style="font-size:${title_font_size}px;font-weight:600;line-height:1.4;color:${this._isVisited(a.link) ? 'var(--disabled-text-color)' : (article_title_color || 'var(--primary-text-color)')};white-space:normal;word-break:break-word;margin-bottom:4px;">${a.title}</div>
           ${(show_source || show_date) ? `
@@ -303,7 +308,25 @@ class RssNewsCard extends HTMLElement {
             </div>` : ''}
           ${show_description && a.description ? `<div style="font-size:${desc_font_size}px;color:${desc_color || 'var(--secondary-text-color)'};line-height:1.4;white-space:normal;word-break:break-word;">${a.description}</div>` : ''}
         </div>
-      </a>`).join('');
+      </div>`).join('');
+  }
+
+  _handleLinkClick(url) {
+    // Android Companion App – native in-app browser
+    if (window.externalApp?.openExternalUrl) {
+      window.externalApp.openExternalUrl(url);
+      return;
+    }
+    // Desktop: centered popup window; mobile browsers/iOS: new tab (platform limitation)
+    const w = Math.min(window.screen.width, 520);
+    const h = Math.min(window.screen.height, 900);
+    const left = Math.round((window.screen.width - w) / 2);
+    const top  = Math.round((window.screen.height - h) / 2);
+    window.open(
+      url, 'rss_article',
+      `width=${w},height=${h},left=${left},top=${top},` +
+      'toolbar=no,menubar=no,scrollbars=yes,resizable=yes'
+    );
   }
 
   _render() {
@@ -320,6 +343,7 @@ class RssNewsCard extends HTMLElement {
           <div class="rss-diag"></div>
           <div class="rss-scroll"><div class="rss-articles"></div></div>
         </div>
+
       </ha-card>`;
     this._initialized = true;
   }
@@ -345,15 +369,18 @@ class RssNewsCard extends HTMLElement {
     if (diagEl) diagEl.innerHTML = issues.length > 0 ? this._renderDiagnostics(issues) : '';
     if (artEl) {
       artEl.innerHTML = this._buildArticlesHtml(articles);
-      // Attach click listeners for visited tracking (no inline onclick)
-      artEl.querySelectorAll('a[data-rss-url]').forEach(a => {
-        a.addEventListener('click', () => {
-          const url = a.dataset.rssUrl;
+      // Attach click listeners – popup on desktop, in-app modal on mobile/companion app
+      artEl.querySelectorAll('.rss-article-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const url = row.dataset.rssUrl;
+          if (!url) return;
           this._markVisited(url);
-          const titleEl = a.querySelector('.rss-atitle');
+          const titleEl = row.querySelector('.rss-atitle');
           if (titleEl) titleEl.style.color = 'var(--disabled-text-color)';
+          this._handleLinkClick(url);
         });
       });
+
     }
   }
 
